@@ -5,62 +5,90 @@ import os
 import pty
 from seesaw import item
 import seesaw
-from seesaw.config import NumberConfigValue
+from seesaw.config import NumberConfigValue, realize
 from seesaw.externalprocess import WgetDownload
 from seesaw.item import ItemInterpolation, ItemValue
 from seesaw.pipeline import Pipeline
 from seesaw.project import Project
-from seesaw.task import SimpleTask, LimitConcurrent, ConditionalTask
+from seesaw.task import SimpleTask, LimitConcurrent, ConditionalTask, Task
 from seesaw.tracker import (GetItemFromTracker, SendDoneToTracker,
-    PrepareStatsForTracker, UploadWithTracker)
+	PrepareStatsForTracker, UploadWithTracker)
 from seesaw.util import find_executable
 import shutil
 import subprocess
 import time
 from tornado.ioloop import IOLoop, PeriodicCallback
-
+import random, string, sys, functools
 
 # check the seesaw version before importing any other components
 if StrictVersion(seesaw.__version__) < StrictVersion("0.0.15"):
-    raise Exception("This pipeline needs seesaw version 0.0.15 or higher.")
+	raise Exception("This pipeline needs seesaw version 0.0.15 or higher.")
 
 
 # # Begin AsyncPopen fix
 class AsyncPopenFixed(seesaw.externalprocess.AsyncPopen):
-    """
-    Start the wait_callback after setting self.pipe, to prevent an infinite
-    spew of "AttributeError: 'AsyncPopen' object has no attribute 'pipe'"
-    """
-    def run(self):
-        self.ioloop = IOLoop.instance()
-        (master_fd, slave_fd) = pty.openpty()
+	"""
+	Start the wait_callback after setting self.pipe, to prevent an infinite
+	spew of "AttributeError: 'AsyncPopen' object has no attribute 'pipe'"
+	"""
+	def run(self):
+		self.ioloop = IOLoop.instance()
+		(master_fd, slave_fd) = pty.openpty()
 
-        # make stdout, stderr non-blocking
-        fcntl.fcntl(master_fd, fcntl.F_SETFL,
-            fcntl.fcntl(master_fd, fcntl.F_GETFL) | os.O_NONBLOCK)
+		# make stdout, stderr non-blocking
+		fcntl.fcntl(master_fd, fcntl.F_SETFL,
+			fcntl.fcntl(master_fd, fcntl.F_GETFL) | os.O_NONBLOCK)
 
-        self.master_fd = master_fd
-        self.master = os.fdopen(master_fd)
+		self.master_fd = master_fd
+		self.master = os.fdopen(master_fd)
 
-        # listen to stdout, stderr
-        self.ioloop.add_handler(master_fd, self._handle_subprocess_stdout,
-            self.ioloop.READ)
+		# listen to stdout, stderr
+		self.ioloop.add_handler(master_fd, self._handle_subprocess_stdout,
+			self.ioloop.READ)
 
-        slave = os.fdopen(slave_fd)
-        self.kwargs["stdout"] = slave
-        self.kwargs["stderr"] = slave
-        self.kwargs["close_fds"] = True
-        self.pipe = subprocess.Popen(*self.args, **self.kwargs)
+		slave = os.fdopen(slave_fd)
+		self.kwargs["stdout"] = slave
+		self.kwargs["stderr"] = slave
+		self.kwargs["close_fds"] = True
+		self.pipe = subprocess.Popen(*self.args, **self.kwargs)
 
-        self.stdin = self.pipe.stdin
+		self.stdin = self.pipe.stdin
 
-        # check for process exit
-        self.wait_callback = PeriodicCallback(self._wait_for_end, 250)
-        self.wait_callback.start()
+		# check for process exit
+		self.wait_callback = PeriodicCallback(self._wait_for_end, 250)
+		self.wait_callback.start()
 
 seesaw.externalprocess.AsyncPopen = AsyncPopenFixed
 # # End AsyncPopen fix
 
+
+class DualWriter(object):
+	def __init__(self, alt, filename, mode="a"):
+		print "Opening %s..." % filename
+		self.f = open(filename, mode)
+		self.alt = alt
+		
+	def write(self, data):
+		self.f.write(data)
+		for output in self.alt:
+			output(data)
+		
+	def close(self):
+		self.f.close()
+		
+class RangeInterpolation(object):
+	def __init__(self, *s):
+		self.s = s
+
+	def realize(self, item):
+		return_list = []
+		for id_ in xrange(item["start_id"], item["end_id"] + 1):
+			for x in self.s:
+				return_list.append(x % (item.items() + {"id": id_}))
+		return return_list
+
+	def __str__(self):
+		return "<'" + self.s + "'>"
 
 ###########################################################################
 # Find a useful Wget+Lua executable.
@@ -69,21 +97,21 @@ seesaw.externalprocess.AsyncPopen = AsyncPopenFixed
 # 1. does not crash with --version, and
 # 2. prints the required version string
 WGET_LUA = find_executable(
-    "Wget+Lua",
-    ["GNU Wget 1.14.lua.20130523-9a5c"],
-    [
-        "./wget-lua",
-        "./wget-lua-warrior",
-        "./wget-lua-local",
-        "../wget-lua",
-        "../../wget-lua",
-        "/home/warrior/wget-lua",
-        "/usr/bin/wget-lua"
-    ]
+	"Wget+Lua",
+	["GNU Wget 1.14.lua.20130523-9a5c"],
+	[
+		"./wget-lua",
+		"./wget-lua-warrior",
+		"./wget-lua-local",
+		"../wget-lua",
+		"../../wget-lua",
+		"/home/warrior/wget-lua",
+		"/usr/bin/wget-lua"
+	]
 )
 
 if not WGET_LUA:
-    raise Exception("No usable Wget+Lua found.")
+	raise Exception("No usable Wget+Lua found.")
 
 
 ###########################################################################
@@ -91,9 +119,9 @@ if not WGET_LUA:
 #
 # Update this each time you make a non-cosmetic change.
 # It will be added to the WARC files and reported to the tracker.
-VERSION = "20131011.01"
-USER_AGENT = "Something"
-TRACKER_ID = 'bloopertv'
+VERSION = "20131018.01"
+USER_AGENT = "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:24.0) Gecko/20100101 Firefox/24.0"
+TRACKER_ID = 'isoprey'
 TRACKER_HOST = 'tracker.archiveteam.org'
 
 
@@ -104,46 +132,181 @@ TRACKER_HOST = 'tracker.archiveteam.org'
 # SimpleTask class and have a process(item) method that is called for
 # each item.
 class PrepareDirectories(SimpleTask):
-    def __init__(self, file_prefix):
-        SimpleTask.__init__(self, "PrepareDirectories")
-        self.file_prefix = file_prefix
+	def __init__(self, file_prefix):
+		SimpleTask.__init__(self, "PrepareDirectories")
+		self.file_prefix = file_prefix
 
-    def process(self, item):
-        item_name = item["item_name"]
+	def process(self, item):
+		item_name = item["item_name"]
+		
+		assert "-" in item_name
+		start, end = [int(x) for x in item_name.split("-", 1)]
+		
+		item["start_id"] = start
+		item["end_id"] = end
+		item["file_bases"] = {}
+		
+		dirname = "/".join((item["data_dir"], item_name))
+		
+		if os.path.isdir(dirname):
+			shutil.rmtree(dirname)
+			
+		os.makedirs(dirname)
+		
+		item["item_dir"] = dirname
+		
+		for id_ in xrange(start, end + 1):
+			file_base = "%s-%s-%s" % (self.file_prefix, time.strftime("%Y%m%d-%H%M%S"), id_,)
+			torrent_base = "%s.torrent" % file_base
+			warc_base = "%s.warc.gz" % file_base
+			item["file_bases"][id_] = (torrent_base, warc_base)
+			open("%s/%s" % (dirname, torrent_base), "w").close()
+			open("%s/%s" % (dirname, warc_base), "w").close()
 
-        # I expect a full URL here
-        assert '-' in item_name
-        assert '.' in item_name
-        assert '/' in item_name
-        assert 'http://' in item_name
-        file_id = item_name.split('/')[-1]  # quick portable way to get filename
+class WgetDownloadTorrentRange(Task):
+	def __init__(self, args, retry_delay=30, max_tries=1, accept_on_exit_code=[0], retry_on_exit_code=None, env=None, stdin_data_function=None):
+		Task.__init__(self, "WgetDownloadTorrentRange")
+		self.args = args
+		self.max_tries = max_tries
+		self.accept_on_exit_code = accept_on_exit_code
+		self.retry_on_exit_code = retry_on_exit_code
+		self.env = env
+		self.stdin_data_function = stdin_data_function
+		self.retry_delay = retry_delay
+		
+	def enqueue(self, item):
+		self.start_item(item)
+		item["current_is_torrent"] = True
+		item["tries"] = 0
+		item["torrent_404"] = False
+		self.process(item)
+		
+	def process(self, item):
+		item["current_id"] = item["start_id"] - 1
+		self.set_next_url(item)
+		self.process_one(item)
+		
+	def set_next_url(self, item):
+		try:
+			item["logwriter"].close()
+		except KeyError, e:
+			pass
+			
+		if item["current_is_torrent"]:			
+			if item["current_id"] < item["end_id"]:
+				item["current_id"] += 1
+				item["current_url"] = "http://ca.isohunt.com/download/%d/%s.torrent" % (item["current_id"], "".join(random.choice(string.letters + string.digits + '-') for x in xrange(0,random.randint(6, 16))))
+				#item["logwriter"] = DualWriter([sys.stdout.write, item.log_output], "%s/torrent-%d.log" % (item["item_dir"], item["current_id"]))
+				#item["logwriter"] = DualWriter([item.log_output], "%s/torrent-%d.log" % (item["item_dir"], item["current_id"]))
+				item["logwriter"] = DualWriter([], "%s/torrent-%d.log" % (item["item_dir"], item["current_id"]))
+				return True
+			else:
+				return False
+		else:
+			item["current_url"] = "http://isohunt.com/torrent_details/%d/" % item["current_id"]
+			#item["logwriter"] = DualWriter([item.log_output], "%s/details-%d.log" % (item["item_dir"], item["current_id"]))
+			item["logwriter"] = DualWriter([], "%s/details-%d.log" % (item["item_dir"], item["current_id"]))
+			return True
+		
+	def process_one(self, item):
+		with self.task_cwd():
+			url = item["current_url"]
+			torrent_name, warc_name = item["file_bases"][item["current_id"]]
+			
+			if item["current_is_torrent"]:
+				extra_args = ["-O", torrent_name]
+			else:
+				extra_args = ["--page-requisites", "-r", "-np", "--warc-file", warc_name.replace(".warc.gz", "")]
+				
+			item.log_output("Start downloading URL %s" % url)
 
-        dirname = "/".join((item["data_dir"], file_id))
+			p = seesaw.externalprocess.AsyncPopen(
+				args=realize(self.args, item) + extra_args + [url],
+				env=realize(self.env, item),
+				stdin=subprocess.PIPE,
+				close_fds=True
+			)
 
-        if os.path.isdir(dirname):
-            shutil.rmtree(dirname)
+			p.on_output += functools.partial(self.on_subprocess_stdout, p, item)
+			p.on_end += functools.partial(self.on_subprocess_end, item)
 
-        os.makedirs(dirname)
+			p.run()
 
-        item["item_dir"] = dirname
+			p.stdin.write(self.stdin_data(item))
+			p.stdin.close()
+		
+	def handle_process_result(self, exit_code, item):
+		if item["current_is_torrent"]:
+			item.log_output("Found torrent for ID %s, fetching metadata..." % item["current_id"])
+		else:
+			item.log_output("Metadata for ID %s fetched. Moving on to next ID..." % item["current_id"])
+		item["current_is_torrent"] = not item["current_is_torrent"]
+		if self.set_next_url(item):
+			self.process_one(item)
+		else:
+			item.log_output("Finished %s for %s\n" % (self, item.description()))
+			item["logwriter"].close()
+			self.complete_item(item)
+			
+	def stdin_data(self, item):
+		if self.stdin_data_function:
+			return self.stdin_data_function(item)
+		else:
+			return ""
+			
+	def on_subprocess_stdout(self, pipe, item, data):
+		item["logwriter"].write(data)
+		
+		if item["current_is_torrent"] and "ERROR 404: Not Found" in data:
+			item["torrent_404"] = True
+		#item.log_output(data, full_line=False)
 
-        item["file_id"] = file_id
-        item["file_base"] = "%s-%s-%s" % (self.file_prefix,
-            time.strftime("%Y%m%d-%H%M%S"),
-            file_id,)
+	def on_subprocess_end(self, item, returncode):
+		if returncode in self.accept_on_exit_code:
+			self.handle_process_result(returncode, item)
+		else:
+			self.handle_process_error(returncode, item)
 
-        open("%(item_dir)s/%(file_base)s" % item, "w").close()
+	def handle_process_error(self, exit_code, item):
+		if item["current_is_torrent"] == True:
+			# Torrent doesn't exist, so there's no point in trying to download other pages
+			if item["torrent_404"]:
+				item.log_output("404 for torrent file detected, skipping ID %s..." % item["current_id"])
+				self.set_next_url(item)
+				self.process_one(item)
+				return
+			else:
+				item.log_output("Got throttled on ID %s, waiting 1200 seconds before retry..." % item["current_id"])
+				retry_delay = 1200
+				# fall through to retry
+		else:
+			retry_delay = self.retry_delay
+		
+		item["tries"] += 1
+
+		item.log_output("Process %s returned exit code %d for %s\n" % (self, exit_code, item.description()))
+		item.log_error(self, exit_code)
+
+		if (self.max_tries == None or item["tries"] < self.max_tries) and (self.retry_on_exit_code == None or exit_code in self.retry_on_exit_code):
+			item.log_output("Retrying %s for %s after %d seconds...\n" % (self, item.description(), self.retry_delay))
+			IOLoop.instance().add_timeout(datetime.timedelta(seconds=self.retry_delay),
+				functools.partial(self.process_one, item))
+		else:
+			item.log_output("Failed %s for %s\n" % (self, item.description()))
+			item["logwriter"].close()
+			self.fail_item(item)
 
 
 class MoveFiles(SimpleTask):
-    def __init__(self):
-        SimpleTask.__init__(self, "MoveFiles")
+	def __init__(self):
+		SimpleTask.__init__(self, "MoveFiles")
 
-    def process(self, item):
-        os.rename("%(item_dir)s/%(file_base)s" % item,
-              "%(data_dir)s/%(file_base)s" % item)
-
-        shutil.rmtree("%(item_dir)s" % item)
+	def process(self, item):
+		for id_ in xrange(item["start_id"], item["end_id"] + 1):
+			os.rename("%s/%s.torrent" % (item["item_dir"], id_), "%s/%s.torrent" % (item["data_dir"], id_))
+			os.rename("%s/%s.warc.gz" % (item["item_dir"], id_), "%s/%s.warc.gz" % (item["data_dir"], id_))
+			
+		shutil.rmtree("%(item_dir)s" % item)
 
 
 ###########################################################################
@@ -152,65 +315,77 @@ class MoveFiles(SimpleTask):
 # This will be shown in the warrior management panel. The logo should not
 # be too big. The deadline is optional.
 project = Project(
-    title="Blip.tv",
-    project_html="""
-    <img class="project-logo" alt="" src="http://archiveteam.org/images/5/5f/Blip_web_logo.png" height="50"/>
-    <h2>Blip.tv <span class="links"><a href="http://blip.tv/">Website</a> &middot; <a href="http://%s/%s/">Leaderboard</a></span></h2>
-    <p>Archiving videos from <b>Blip.tv</b></p>
-    """ % (TRACKER_HOST, TRACKER_ID)
-    , utc_deadline=datetime.datetime(2013, 11, 07, 00, 00, 1)
+	title="Isohunt",
+	project_html="""
+	<img class="project-logo" alt="" src="http://cryto.net/~joepie91/isohunt_logo.png" height="50"/>
+	<h2>Isohunt <span class="links"><a href="http://isohunt.com/">Website</a> &middot; <a href="http://%s/%s/">Leaderboard</a></span></h2>
+	<p>Archiving torrents and metadata from <b>Isohunt</b></p>
+	""" % (TRACKER_HOST, TRACKER_ID)
+	, utc_deadline=datetime.datetime(2013, 11, 07, 00, 00, 1)
 )
 
+""" Old stuff
+WgetDownload([
+		WGET_LUA,
+		"-U", USER_AGENT,
+		#"-o", ItemInterpolation("%(item_dir)s/wget.log"),  #TODO: Multiple logs?
+		"--no-check-certificate",
+		"--output-document", ItemInterpolation("%(item_dir)s/%(file_base)s"),
+		"-e", "robots=off",
+		"--rotate-dns",
+		"--timeout", "60",
+		"--level=inf",
+		"--tries", "20",
+		"--waitretry", "5"
+		],
+		max_tries=5,
+		accept_on_exit_code=[ 0 ],
+	),"""
+
 pipeline = Pipeline(
-    GetItemFromTracker("http://%s/%s" % (TRACKER_HOST, TRACKER_ID), downloader,
-        VERSION),
-    PrepareDirectories(file_prefix="bliptv"),
-    WgetDownload([
-        WGET_LUA,
-        "-U", USER_AGENT,
-        # "-nv",
-        "-o", ItemInterpolation("%(item_dir)s/wget.log"),
-        "--no-check-certificate",
-        "--truncate-output",
-        "--output-document", ItemInterpolation("%(item_dir)s/%(file_base)s"),
-        "-e", "robots=off",
-        "--rotate-dns",
-        "--timeout", "60",
-        "--level=inf",
-        "--tries", "20",
-        "--waitretry", "5",
-        ItemInterpolation("%(item_name)s")
-        ],
-        max_tries=5,
-        accept_on_exit_code=[ 0 ],
-    ),
-    PrepareStatsForTracker(
-        defaults={ "downloader": downloader, "version": VERSION },
-        file_groups={
-            "data": [ ItemInterpolation("%(item_dir)s/%(file_base)s") ]
-            }
-    ),
-    MoveFiles(),
-    LimitConcurrent(NumberConfigValue(min=1, max=4, default="1",
-        name="shared:rsync_threads", title="Rsync threads",
-        description="The maximum number of concurrent uploads."),
-        UploadWithTracker(
-            "http://tracker.archiveteam.org/%s" % TRACKER_ID,
-            downloader=downloader,
-            version=VERSION,
-            files=[
-                ItemInterpolation("%(data_dir)s/%(file_base)s")
-                ],
-            rsync_target_source_path=ItemInterpolation("%(data_dir)s/"),
-            rsync_extra_args=[
-                "--recursive",
-                "--partial",
-                "--partial-dir", ".rsync-tmp"
-            ]
-            ),
-    ),
-    SendDoneToTracker(
-        tracker_url="http://%s/%s" % (TRACKER_HOST, TRACKER_ID),
-        stats=ItemValue("stats")
-    )
+	GetItemFromTracker("http://%s/%s" % (TRACKER_HOST, TRACKER_ID), downloader,
+		VERSION),
+	PrepareDirectories(file_prefix="isohunt"),
+	WgetDownloadTorrentRange([
+		WGET_LUA,
+		"-U", USER_AGENT,
+		"--no-check-certificate",
+		"-e", "robots=off",
+		"--rotate-dns",
+		"--timeout", "60",
+		"--level=inf",
+		"--tries", "20",
+		"--waitretry", "5"
+		],
+		max_tries=5,
+		accept_on_exit_code=[ 0 ]
+	),
+	PrepareStatsForTracker(
+		defaults={ "downloader": downloader, "version": VERSION },
+		file_groups={
+			"torrents": RangeInterpolation("%(item_dir)s/%(id)s.torrent"),
+			"warcs": RangeInterpolation("%(item_dir)s/%(id)s.warc.gz")
+			}
+	),
+	MoveFiles(),
+	LimitConcurrent(NumberConfigValue(min=1, max=4, default="1",
+		name="shared:rsync_threads", title="Rsync threads",
+		description="The maximum number of concurrent uploads."),
+		UploadWithTracker(
+			"http://tracker.archiveteam.org/%s" % TRACKER_ID,
+			downloader=downloader,
+			version=VERSION,
+			files=RangeInterpolation("%(item_dir)s/%(id)s.torrent", "%(item_dir)s/%(id)s.warc.gz"),
+			rsync_target_source_path=ItemInterpolation("%(data_dir)s/"),
+			rsync_extra_args=[
+				"--recursive",
+				"--partial",
+				"--partial-dir", ".rsync-tmp"
+			]
+			),
+	),
+	SendDoneToTracker(
+		tracker_url="http://%s/%s" % (TRACKER_HOST, TRACKER_ID),
+		stats=ItemValue("stats")
+	)
 )
