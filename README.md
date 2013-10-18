@@ -1,8 +1,8 @@
-blip.tv-grab-video-only
+isohunt-grab
 =========================
 
-Seesaw script for the Archive Team blip.tv grabbing.
-You'll find this project on the Archive Team Warrior (http://tracker.archiveteam.org/bloopertv/).
+Seesaw script for the Archive Team Isohunt grabbing.
+You'll find this project on the Archive Team Warrior (http://tracker.archiveteam.org/isoprey/).
 
 
 Running without a warrior
