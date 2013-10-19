@@ -45,7 +45,7 @@ Be sure to replace `YOURNICKHERE` with your nickname.
 
 You need Homebrew.
 
-**There is a known issue with some non-packaged versions of rsync. If you get errors during the upload stage, isohunt-grab will not work with your rsync version.**
+**There is a known issue with some packaged versions of rsync. If you get errors during the upload stage, isohunt-grab will not work with your rsync version.**
 
     brew install python lua
     pip install seesaw
