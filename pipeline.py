@@ -12,13 +12,14 @@ from seesaw.pipeline import Pipeline
 from seesaw.project import Project
 from seesaw.task import SimpleTask, LimitConcurrent, ConditionalTask, Task
 from seesaw.tracker import (GetItemFromTracker, SendDoneToTracker,
-	PrepareStatsForTracker, UploadWithTracker)
+	PrepareStatsForTracker, UploadWithTracker, TrackerRequest, RsyncUpload,
+	CurlUpload)
 from seesaw.util import find_executable
 import shutil
 import subprocess
 import time
 from tornado.ioloop import IOLoop, PeriodicCallback
-import random, string, sys, functools
+import random, string, sys, functools, json, re
 
 # check the seesaw version before importing any other components
 if StrictVersion(seesaw.__version__) < StrictVersion("0.0.15"):
@@ -84,9 +85,13 @@ class RangeInterpolation(object):
 		return_list = []
 		for id_ in xrange(item["start_id"], item["end_id"] + 1):
 			for x in self.s:
-				return_list.append(x % (item.items() + {"id": id_}))
+				torrent_base, warc_base = item["file_bases"][id_]
+				item["range_filename"] = torrent_base
+				return_list.append(x % item)
+				item["range_filename"] = warc_base
+				return_list.append(x % item)
 		return return_list
-
+		
 	def __str__(self):
 		return "<'" + self.s + "'>"
 
@@ -151,6 +156,7 @@ class PrepareDirectories(SimpleTask):
 		if os.path.isdir(dirname):
 			shutil.rmtree(dirname)
 			
+		item.log_output("Creating directory %s" % dirname)
 		os.makedirs(dirname)
 		
 		item["item_dir"] = dirname
@@ -160,7 +166,9 @@ class PrepareDirectories(SimpleTask):
 			torrent_base = "%s.torrent" % file_base
 			warc_base = "%s.warc.gz" % file_base
 			item["file_bases"][id_] = (torrent_base, warc_base)
+			item.log_output("Creating file %s" % "%s/%s" % (dirname, torrent_base))
 			open("%s/%s" % (dirname, torrent_base), "w").close()
+			item.log_output("Creating file %s" % "%s/%s" % (dirname, warc_base))
 			open("%s/%s" % (dirname, warc_base), "w").close()
 
 class WgetDownloadTorrentRange(Task):
@@ -214,9 +222,9 @@ class WgetDownloadTorrentRange(Task):
 			torrent_name, warc_name = item["file_bases"][item["current_id"]]
 			
 			if item["current_is_torrent"]:
-				extra_args = ["-O", torrent_name]
+				extra_args = ["-O", "%s/%s" % (item["item_dir"], torrent_name)]
 			else:
-				extra_args = ["--page-requisites", "-r", "-np", "--warc-file", warc_name.replace(".warc.gz", "")]
+				extra_args = ["--page-requisites", "-r", "-np", "-P", item["item_dir"], "--warc-file", "%s/%s" % (item["item_dir"], warc_name.replace(".warc.gz", ""))]
 				
 			item.log_output("Start downloading URL %s" % url)
 
@@ -235,6 +243,11 @@ class WgetDownloadTorrentRange(Task):
 			p.stdin.write(self.stdin_data(item))
 			p.stdin.close()
 		
+	def handle_done(self, item):
+		item.log_output("Finished %s for %s\n" % (self, item.description()))
+		item["logwriter"].close()
+		self.complete_item(item)
+		
 	def handle_process_result(self, exit_code, item):
 		if item["current_is_torrent"]:
 			item.log_output("Found torrent for ID %s, fetching metadata..." % item["current_id"])
@@ -244,9 +257,7 @@ class WgetDownloadTorrentRange(Task):
 		if self.set_next_url(item):
 			self.process_one(item)
 		else:
-			item.log_output("Finished %s for %s\n" % (self, item.description()))
-			item["logwriter"].close()
-			self.complete_item(item)
+			self.handle_done(item)
 			
 	def stdin_data(self, item):
 		if self.stdin_data_function:
@@ -255,7 +266,10 @@ class WgetDownloadTorrentRange(Task):
 			return ""
 			
 	def on_subprocess_stdout(self, pipe, item, data):
-		item["logwriter"].write(data)
+		try:
+			item["logwriter"].write(data)
+		except ValueError, e:
+			pass # Not sure why this happens, but it breaks shit
 		
 		if item["current_is_torrent"] and "ERROR 404: Not Found" in data:
 			item["torrent_404"] = True
@@ -272,8 +286,10 @@ class WgetDownloadTorrentRange(Task):
 			# Torrent doesn't exist, so there's no point in trying to download other pages
 			if item["torrent_404"]:
 				item.log_output("404 for torrent file detected, skipping ID %s..." % item["current_id"])
-				self.set_next_url(item)
-				self.process_one(item)
+				if self.set_next_url(item):
+					self.process_one(item)
+				else:
+					self.handle_done(item)
 				return
 			else:
 				item.log_output("Got throttled on ID %s, waiting 1200 seconds before retry..." % item["current_id"])
@@ -294,6 +310,7 @@ class WgetDownloadTorrentRange(Task):
 		else:
 			item.log_output("Failed %s for %s\n" % (self, item.description()))
 			item["logwriter"].close()
+			return
 			self.fail_item(item)
 
 
@@ -303,11 +320,111 @@ class MoveFiles(SimpleTask):
 
 	def process(self, item):
 		for id_ in xrange(item["start_id"], item["end_id"] + 1):
-			os.rename("%s/%s.torrent" % (item["item_dir"], id_), "%s/%s.torrent" % (item["data_dir"], id_))
-			os.rename("%s/%s.warc.gz" % (item["item_dir"], id_), "%s/%s.warc.gz" % (item["data_dir"], id_))
+			torrent_base, warc_base = item["file_bases"][id_]
+			
+			from_ = "%s/%s" % (item["item_dir"], torrent_base)
+			to_ = "%s/%s" % (item["data_dir"], torrent_base)
+			item.log_output("Moving file from %s to %s" % (from_, to_))
+			os.rename(from_, to_)
+			
+			from_ = "%s/%s" % (item["item_dir"], warc_base)
+			to_ = "%s/%s" % (item["data_dir"], warc_base)
+			item.log_output("Moving file from %s to %s" % (from_, to_))
+			os.rename(from_, to_)
 			
 		shutil.rmtree("%(item_dir)s" % item)
 
+class CleanUpDirectories(SimpleTask):
+	def __init__(self):
+		SimpleTask.__init__(self, "CleanUpDirectories")
+		
+	def process(self, item):
+		shutil.rmtree("%(item_dir)s" % item)
+
+class PrepareStatsForTracker2(SimpleTask):
+	'''Similar to PrepareStatsForTracker but calls realize on files earlier'''
+	def __init__(self, defaults=None, file_groups=None, id_function=None):
+		SimpleTask.__init__(self, "PrepareStatsForTracker2")
+		self.defaults = defaults or {}
+		self.file_groups = file_groups or {}
+		self.id_function = id_function
+
+	def process(self, item):
+		total_bytes = {}
+		for (group, files) in self.file_groups.iteritems():
+			total_bytes[group] = sum([ os.path.getsize(f) for f in realize(files, item)])
+
+		stats = {}
+		stats.update(self.defaults)
+		stats["item"] = item["item_name"]
+		stats["bytes"] = total_bytes
+
+		if self.id_function:
+			stats["id"] = self.id_function(item)
+
+		item["stats"] = realize(stats, item)
+		
+class UploadWithTracker2(TrackerRequest):
+	'''Similar to UploadWithTracker but calls realize on files earlier'''
+	def __init__(self, tracker_url, downloader, files, version=None, rsync_target_source_path="./", rsync_bwlimit="0", rsync_extra_args=[], curl_connect_timeout="60", curl_speed_limit="1", curl_speed_time="900"):
+		TrackerRequest.__init__(self, "Upload2", tracker_url, "upload")
+
+		self.downloader = downloader
+		self.version = version
+
+		self.files = files
+		self.rsync_target_source_path = rsync_target_source_path
+		self.rsync_bwlimit = rsync_bwlimit
+		self.rsync_extra_args = rsync_extra_args
+		self.curl_connect_timeout = curl_connect_timeout
+		self.curl_speed_limit = curl_speed_limit
+		self.curl_speed_time = curl_speed_time
+
+	def data(self, item):
+		data = {"downloader": realize(self.downloader, item),
+				"item_name": item["item_name"]}
+		if self.version:
+			data["version"] = realize(self.version, item)
+		return data
+
+	def process_body(self, body, item):
+		data = json.loads(body)
+		if "upload_target" in data:
+			files = realize(self.files, item)
+			inner_task = None
+
+			if re.match(r"^rsync://", data["upload_target"]):
+				item.log_output("Uploading with Rsync to %s" % data["upload_target"])
+				inner_task = RsyncUpload(data["upload_target"], files, target_source_path=self.rsync_target_source_path, bwlimit=self.rsync_bwlimit, extra_args=self.rsync_extra_args, max_tries=1)
+
+			elif re.match(r"^https?://", data["upload_target"]):
+				item.log_output("Uploading with Curl to %s" % data["upload_target"])
+
+				if len(files) != 1:
+					item.log_output("Curl expects to upload a single file.")
+					self.fail_item(item)
+					return
+
+				inner_task = CurlUpload(data["upload_target"], files[0], self.curl_connect_timeout, self.curl_speed_limit, self.curl_speed_time, max_tries=1)
+
+			else:
+				item.log_output("Received invalid upload type.")
+				self.fail_item(item)
+				return
+
+			inner_task.on_complete_item += self._inner_task_complete_item
+			inner_task.on_fail_item += self._inner_task_fail_item
+			inner_task.enqueue(item)
+
+		else:
+			item.log_output("Tracker did not provide an upload target.")
+			self.schedule_retry(item)
+
+	def _inner_task_complete_item(self, task, item):
+		self.complete_item(item)
+
+	def _inner_task_fail_item(self, task, item):
+		self.schedule_retry(item)
 
 ###########################################################################
 # Initialize the project.
@@ -321,7 +438,7 @@ project = Project(
 	<h2>Isohunt <span class="links"><a href="http://isohunt.com/">Website</a> &middot; <a href="http://%s/%s/">Leaderboard</a></span></h2>
 	<p>Archiving torrents and metadata from <b>Isohunt</b></p>
 	""" % (TRACKER_HOST, TRACKER_ID)
-	, utc_deadline=datetime.datetime(2013, 11, 07, 00, 00, 1)
+	, utc_deadline=datetime.datetime(2013, 10, 24, 00, 00, 1)
 )
 
 """ Old stuff
@@ -360,22 +477,20 @@ pipeline = Pipeline(
 		max_tries=5,
 		accept_on_exit_code=[ 0 ]
 	),
-	PrepareStatsForTracker(
+	PrepareStatsForTracker2(
 		defaults={ "downloader": downloader, "version": VERSION },
 		file_groups={
-			"torrents": RangeInterpolation("%(item_dir)s/%(id)s.torrent"),
-			"warcs": RangeInterpolation("%(item_dir)s/%(id)s.warc.gz")
+			"data": RangeInterpolation("%(item_dir)s/%(range_filename)s")
 			}
-	),
-	MoveFiles(),
+	), # Used to MoveFiles here, but that's actually kind of stupid.
 	LimitConcurrent(NumberConfigValue(min=1, max=4, default="1",
 		name="shared:rsync_threads", title="Rsync threads",
 		description="The maximum number of concurrent uploads."),
-		UploadWithTracker(
+		UploadWithTracker2(
 			"http://tracker.archiveteam.org/%s" % TRACKER_ID,
 			downloader=downloader,
 			version=VERSION,
-			files=RangeInterpolation("%(item_dir)s/%(id)s.torrent", "%(item_dir)s/%(id)s.warc.gz"),
+			files=RangeInterpolation("%(item_dir)s/%(range_filename)s"),
 			rsync_target_source_path=ItemInterpolation("%(data_dir)s/"),
 			rsync_extra_args=[
 				"--recursive",
@@ -384,6 +499,7 @@ pipeline = Pipeline(
 			]
 			),
 	),
+	CleanUpDirectories(),
 	SendDoneToTracker(
 		tracker_url="http://%s/%s" % (TRACKER_HOST, TRACKER_ID),
 		stats=ItemValue("stats")
