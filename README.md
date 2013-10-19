@@ -67,6 +67,12 @@ Be sure to replace `YOURNICKHERE` with your nickname.
     pip install seesaw
     [... pretty much the same as above ...]
 
+### For openSUSE:
+
+    zypper install liblua5_1 lua51 lua51-devel screen python-pip libgnutls-devel
+    pip install seesaw
+    [... pretty much the same as above ...]
+
 ### For OS X:
 
 You need Homebrew.
