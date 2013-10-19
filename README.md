@@ -50,7 +50,7 @@ For more options, run:
 Distribution-specific setup
 -------------------------
 
-### For Debian:
+### For Debian/Ubuntu:
 
 Be sure to replace `YOURNICKHERE` with your nickname.
 
