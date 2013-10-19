@@ -53,4 +53,9 @@ You need Homebrew.
 
 ### For Arch Linux:
 
-Install [https://aur.archlinux.org/packages/wget-lua/](the wget-lua package from the AUR). Then follow instructions as above (except for the `./get-wget-lua.sh` bit).
+1. Make sure you have `python-pip2` installed.
+2. Install [https://aur.archlinux.org/packages/wget-lua/](the wget-lua package from the AUR). 
+3. Run `pip2 install seesaw`.
+4. Modify the run-pipeline script in seesaw to point at `#!/usr/bin/python2` instead of `#!/usr/bin/python`.
+5. `adduser --system --group --shell /bin/bash archiveteam`
+6. `screen su -c "cd /home/archiveteam/isohunt-grab/; run-pipeline pipeline.py --concurrent 2 --address '127.0.0.1' YOURNICKHERE" archiveteam`
