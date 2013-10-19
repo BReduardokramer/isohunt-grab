@@ -310,7 +310,6 @@ class WgetDownloadTorrentRange(Task):
 		else:
 			item.log_output("Failed %s for %s\n" % (self, item.description()))
 			item["logwriter"].close()
-			return
 			self.fail_item(item)
 
 
