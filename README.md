@@ -2,9 +2,13 @@ isohunt-grab
 =========================
 
 Seesaw script for the Archive Team Isohunt grabbing.
-You'll find this project on the Archive Team Warrior (http://tracker.archiveteam.org/isoprey/).
+You'll find this project on the Archive Team Tracker (http://tracker.archiveteam.org/isoprey/).
 
 **Do __not__ try to run multiple instances of the pipeline script on the same IP. The pipeline is hardcoded to a maximum concurrency of 2 threads; above this, Isohunt will __ban your IP__.** Just copypaste the pipeline commands below, and you will be fine.
+
+Why we're archiving Isohunt
+-------------------------
+Isohunt is [shutting down](http://torrentfreak.com/isohunt-shuts-down-after-110-million-settlement-with-the-mpaa-131017/). We're trying to save not just the torrents, but also metadata around it, such as user comments.
 
 Running with a warrior
 -------------------------
