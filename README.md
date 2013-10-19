@@ -85,3 +85,7 @@ You need Homebrew.
 4. Modify the run-pipeline script in seesaw to point at `#!/usr/bin/python2` instead of `#!/usr/bin/python`.
 5. `adduser --system --group --shell /bin/bash archiveteam`
 6. `screen su -c "cd /home/archiveteam/isohunt-grab/; run-pipeline pipeline.py --concurrent 2 --address '127.0.0.1' YOURNICKHERE" archiveteam`
+
+### For FreeBSD:
+
+Honestly, I have no idea. `./get-wget-lua.sh` supposedly doesn't work due to differences in the `tar` that ships with FreeBSD. Another problem is the apparent absence of Lua 5.1 development headers. If you figure this out, please do let us know on IRC (irc.efnet.org #isoprey).
