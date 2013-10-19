@@ -463,7 +463,7 @@ pipeline = Pipeline(
 	GetItemFromTracker("http://%s/%s" % (TRACKER_HOST, TRACKER_ID), downloader,
 		VERSION),
 	PrepareDirectories(file_prefix="isohunt"),
-	LimitConcurrent(NumberConfigValue(min=1, max=2, default="1",
+	LimitConcurrent(NumberConfigValue(min=1, max=2, default="2",
 		name="isohunt:download_threads", title="Isohunt downloading threads",
 		description="How many threads downloading Isohunt torrents and pages can run at once, to avoid throttling."),
 		WgetDownloadTorrentRange([
