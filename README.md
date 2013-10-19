@@ -18,6 +18,11 @@ Why aren't you just crawling for valid torrents? This is inefficient.
 
 Isohunt has (low) hard limits for the amount of search and browse results it returns. Attempting to download every single ID is the only way to ensure that we're not missing anything.
 
+Setup instructions
+=========================
+
+Be sure to replace `YOURNICKHERE` with the nickname that you want to be shown as, on the tracker. You don't need to register it, just pick a nickname you like.
+
 Running with a warrior
 -------------------------
 
@@ -41,7 +46,7 @@ To run this outside the warrior, clone this repository and run:
 
 then start downloading with:
 
-    run-pipeline pipeline.py --concurrent 2 YOURNICKNAME
+    run-pipeline pipeline.py --concurrent 2 YOURNICKHERE
 
 For more options, run:
 
@@ -51,8 +56,6 @@ Distribution-specific setup
 -------------------------
 
 ### For Debian/Ubuntu:
-
-Be sure to replace `YOURNICKHERE` with your nickname.
 
     adduser --system --group --shell /bin/bash archiveteam
     apt-get install -y git-core libgnutls-dev lua5.1 liblua5.1-0 liblua5.1-0-dev screen python-pip
