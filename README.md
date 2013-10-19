@@ -29,7 +29,7 @@ Distribution-specific setup
 Be sure to replace `YOURNICKHERE` with your nickname.
 
     adduser --system --group --shell /bin/bash archiveteam
-    apt-get install -y git-core gnutls-dev lua5.1 liblua5.1-0 liblua5.1-0-dev screen
+    apt-get install -y git-core gnutls-dev lua5.1 liblua5.1-0 liblua5.1-0-dev screen python-pip
     pip install seesaw
     su -c "cd /home/archiveteam; git clone https://github.com/joepie91/isohunt-grab.git; cd isohunt-grab; ./get-wget-lua.sh" archiveteam
     screen su -c "cd /home/archiveteam/isohunt-grab/; run-pipeline pipeline.py --concurrent 2 --address '127.0.0.1' YOURNICKHERE" archiveteam
@@ -37,5 +37,5 @@ Be sure to replace `YOURNICKHERE` with your nickname.
     
 ### For CentOS:
 
-    yum -y install gnutls-devel lua-devel
+    yum -y install gnutls-devel lua-devel python-pip
     [... pretty much the same as above ...]
