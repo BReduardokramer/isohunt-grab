@@ -80,11 +80,15 @@ Distribution-specific setup
 
 You need Homebrew.
 
-**There is a known issue with some packaged versions of rsync. If you get errors during the upload stage, isohunt-grab will not work with your rsync version.**
-
     brew install python lua
     pip install seesaw
     [... pretty much the same as above ...]
+
+**There is a known issue with some packaged versions of rsync. If you get errors during the upload stage, isohunt-grab will not work with your rsync version.**
+
+This supposedly fixes it:
+
+    alias rsync=/usr/local/bin/rsync
 
 ### For Arch Linux:
 
