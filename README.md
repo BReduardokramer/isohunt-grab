@@ -4,11 +4,19 @@ isohunt-grab
 Seesaw script for the Archive Team Isohunt grabbing.
 You'll find this project on the Archive Team Tracker (http://tracker.archiveteam.org/isoprey/).
 
+Seeing a lot of 404 errors in your terminal when running this script is normal. As long as they're just 404 errors, all is fine. Questions, comments, suggestions? Feel free to drop by in #isoprey on EFNet.
+
 **Do __not__ try to run multiple instances of the pipeline script on the same IP. The pipeline is hardcoded to a maximum concurrency of 2 threads; above this, Isohunt will __ban your IP__.** Just copypaste the pipeline commands below, and you will be fine.
 
 Why we're archiving Isohunt
 -------------------------
+
 Isohunt is [shutting down](http://torrentfreak.com/isohunt-shuts-down-after-110-million-settlement-with-the-mpaa-131017/). We're trying to save not just the torrents, but also metadata around it, such as user comments.
+
+Why aren't you just crawling for valid torrents? This is inefficient.
+-------------------------
+
+Isohunt has (low) hard limits for the amount of search and browse results it returns. Attempting to download every single ID is the only way to ensure that we're not missing anything.
 
 Running with a warrior
 -------------------------
