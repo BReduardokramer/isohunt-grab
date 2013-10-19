@@ -27,7 +27,7 @@ To run this outside the warrior, clone this repository and run:
 
 then start downloading with:
 
-    run-pipeline pipeline.py YOURNICKNAME
+    run-pipeline pipeline.py --concurrent 2 YOURNICKNAME
 
 For more options, run:
 
