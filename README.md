@@ -4,6 +4,8 @@ isohunt-grab
 Seesaw script for the Archive Team Isohunt grabbing.
 You'll find this project on the Archive Team Warrior (http://tracker.archiveteam.org/isoprey/).
 
+**Do __not__ try to run multiple instances of the pipeline script on the same IP. The pipeline is hardcoded to a maximum concurrency of 2 threads; above this, Isohunt will __ban your IP__.** Just copypaste the pipeline commands below, and you will be fine.
+
 Running with a warrior
 -------------------------
 
