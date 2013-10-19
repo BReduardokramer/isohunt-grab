@@ -50,3 +50,7 @@ You need Homebrew.
     brew install python lua
     pip install seesaw
     [... pretty much the same as above ...]
+
+### For Arch Linux:
+
+Install [https://aur.archlinux.org/packages/wget-lua/](the wget-lua package from the AUR). Then follow instructions as above (except for the `./get-wget-lua.sh` bit).
