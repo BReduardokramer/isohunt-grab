@@ -23,6 +23,8 @@ Setup instructions
 
 Be sure to replace `YOURNICKHERE` with the nickname that you want to be shown as, on the tracker. You don't need to register it, just pick a nickname you like.
 
+**If anything goes wrong while running the commands below, please scroll down to the bottom of this page - there's troubleshooting information there.**
+
 Running with a warrior
 -------------------------
 
@@ -52,6 +54,13 @@ then start downloading with:
 For more options, run:
 
     run-pipeline --help
+    
+Running multiple instances on different IPs
+-------------------------
+
+Follow the instructions for setting up dependencies on your distribution below, but instead of running run-pipeline directly, use multi.sh in the repository. 
+
+Put a list of IPs in a file named `ips`. Don't forget to change `YOURNICKHERE` in multi.sh to your nickname!
 
 Distribution-specific setup
 -------------------------
@@ -107,3 +116,20 @@ Ensure that you have the Arch equivalent of bzip2 installed as well.
 ### For FreeBSD:
 
 Honestly, I have no idea. `./get-wget-lua.sh` supposedly doesn't work due to differences in the `tar` that ships with FreeBSD. Another problem is the apparent absence of Lua 5.1 development headers. If you figure this out, please do let us know on IRC (irc.efnet.org #isoprey).
+
+Troubleshooting
+=========================
+
+Broken? These are some of the possible solutions:
+
+### wget-lua was not successfully built
+
+If you get errors about `wget.pod` or something similar, the documentation failed to compile - wget-lua, however, compiled fine. Try this:
+
+    cd wget-lua.tmp
+    mv src/wget ../wget-lua
+    cd ..
+    
+### Other problems
+
+Have an issue not listed here? Join us on IRC and ask! We can be found at irc.efnet.org #isoprey.
