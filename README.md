@@ -131,6 +131,8 @@ If you get errors about `wget.pod` or something similar, the documentation faile
     mv src/wget ../wget-lua
     cd ..
     
+The `wget-lua.tmp` name may be inaccurate. If you have a folder with a similar but different name, use that instead and please let us know on IRC what folder name you had!
+    
 ### Other problems
 
 Have an issue not listed here? Join us on IRC and ask! We can be found at irc.efnet.org #isoprey.
