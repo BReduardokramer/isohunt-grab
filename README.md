@@ -132,6 +132,8 @@ If you get errors about `wget.pod` or something similar, the documentation faile
     cd ..
     
 The `get-wget-lua.tmp` name may be inaccurate. If you have a folder with a similar but different name, use that instead and please let us know on IRC what folder name you had!
+
+Optionally, if you know what you're doing, you may want to use wgetpod.patch.
     
 ### Other problems
 
