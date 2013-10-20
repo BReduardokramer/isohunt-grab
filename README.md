@@ -58,7 +58,7 @@ Distribution-specific setup
 ### For Debian/Ubuntu:
 
     adduser --system --group --shell /bin/bash archiveteam
-    apt-get install -y git-core libgnutls-dev lua5.1 liblua5.1-0 liblua5.1-0-dev screen python-pip
+    apt-get install -y git-core libgnutls-dev lua5.1 liblua5.1-0 liblua5.1-0-dev screen python-pip bzip2
     pip install seesaw
     su -c "cd /home/archiveteam; git clone https://github.com/joepie91/isohunt-grab.git; cd isohunt-grab; ./get-wget-lua.sh" archiveteam
     screen su -c "cd /home/archiveteam/isohunt-grab/; run-pipeline pipeline.py --concurrent 2 --address '127.0.0.1' YOURNICKHERE" archiveteam
@@ -66,19 +66,21 @@ Distribution-specific setup
     
 ### For CentOS:
 
+Ensure that you have the CentOS equivalent of bzip2 installed as well.
+
     yum -y install gnutls-devel lua-devel python-pip
     pip install seesaw
     [... pretty much the same as above ...]
 
 ### For openSUSE:
 
-    zypper install liblua5_1 lua51 lua51-devel screen python-pip libgnutls-devel
+    zypper install liblua5_1 lua51 lua51-devel screen python-pip libgnutls-devel bzip2
     pip install seesaw
     [... pretty much the same as above ...]
 
 ### For OS X:
 
-You need Homebrew.
+You need Homebrew. Ensure that you have the OS X equivalent of bzip2 installed as well.
 
     brew install python lua
     pip install seesaw
@@ -91,6 +93,8 @@ This supposedly fixes it:
     alias rsync=/usr/local/bin/rsync
 
 ### For Arch Linux:
+
+Ensure that you have the Arch equivalent of bzip2 installed as well.
 
 1. Make sure you have `python-pip2` installed.
 2. Install [https://aur.archlinux.org/packages/wget-lua/](the wget-lua package from the AUR). 
