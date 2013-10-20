@@ -304,8 +304,8 @@ class WgetDownloadTorrentRange(Task):
 		item.log_error(self, exit_code)
 
 		if (self.max_tries == None or item["tries"] < self.max_tries) and (self.retry_on_exit_code == None or exit_code in self.retry_on_exit_code):
-			item.log_output("Retrying %s for %s after %d seconds...\n" % (self, item.description(), self.retry_delay))
-			IOLoop.instance().add_timeout(datetime.timedelta(seconds=self.retry_delay),
+			item.log_output("Retrying %s for %s after %d seconds...\n" % (self, item.description(), retry_delay))
+			IOLoop.instance().add_timeout(datetime.timedelta(seconds=retry_delay),
 				functools.partial(self.process_one, item))
 		else:
 			item.log_output("Failed %s for %s\n" % (self, item.description()))
