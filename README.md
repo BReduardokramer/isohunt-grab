@@ -35,9 +35,10 @@ If you want to run this on Linux, then skip ahead to the next section; otherwise
 1. Download and set up the [ArchiveTeam Warrior](http://www.archiveteam.org/index.php?title=ArchiveTeam_Warrior).
 2. After starting the Warrior VM, make sure that your keyboard input is captured and press `ALT + F3`. You will get a terminal.
 3. Log in with the login details you're shown on the terminal.
-4. `apt-get install -y git-core libgnutls-dev lua5.1 liblua5.1-0 liblua5.1-0-dev screen python-pip bzip2`
-5. `git clone https://github.com/joepie91/isohunt-grab.git; cd isohunt-grab; ./get-wget-lua.sh`
-6. `run-pipeline pipeline.py --concurrent 6 --port 8002 YOURNICKHERE`
+4. `apt-get update`
+5. `apt-get install -y git-core libgnutls-dev lua5.1 liblua5.1-0 liblua5.1-0-dev screen python-pip bzip2`
+6. `git clone https://github.com/joepie91/isohunt-grab.git; cd isohunt-grab; ./get-wget-lua.sh`
+7. `run-pipeline pipeline.py --concurrent 6 --port 8002 YOURNICKHERE`
 
 Running without a warrior
 -------------------------
