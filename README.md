@@ -87,7 +87,7 @@ Ensure that you have the CentOS equivalent of bzip2 installed as well. You might
 
 ### For openSUSE:
 
-    zypper install liblua5_1 lua51 lua51-devel screen python-pip libgnutls-devel bzip2
+    zypper install liblua5_1 lua51 lua51-devel screen python-pip libgnutls-devel bzip2 python-devel gcc make
     pip install seesaw
     [... pretty much the same as above ...]
 
@@ -95,7 +95,7 @@ Ensure that you have the CentOS equivalent of bzip2 installed as well. You might
 
 You need Homebrew. Ensure that you have the OS X equivalent of bzip2 installed as well.
 
-    brew install python lua
+    brew install python lua gnutls
     pip install seesaw
     [... pretty much the same as above ...]
 
