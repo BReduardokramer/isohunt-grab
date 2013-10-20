@@ -6,7 +6,7 @@ You'll find this project on the Archive Team Tracker (http://tracker.archiveteam
 
 Seeing a lot of 404 errors in your terminal when running this script is normal. As long as they're just 404 errors, all is fine. Questions, comments, suggestions? Feel free to drop by in #isoprey on EFNet.
 
-**Do __not__ try to run multiple instances of the pipeline script on the same IP. The pipeline is hardcoded to a maximum concurrency of 2 threads; above this, Isohunt will __ban your IP__.** Just copypaste the pipeline commands below, and you will be fine.
+**Do __not__ try to run multiple instances of the pipeline script on the same IP. The pipeline is hardcoded to a maximum concurrency of 6 threads; above this, Isohunt will __ban your IP__.** Just copypaste the pipeline commands below, and you will be fine.
 
 Why we're archiving Isohunt
 -------------------------
