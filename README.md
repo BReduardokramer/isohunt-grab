@@ -6,7 +6,7 @@ You'll find this project on the Archive Team Tracker (http://tracker.archiveteam
 
 Seeing a lot of 404 errors in your terminal when running this script is normal. As long as they're just 404 errors, all is fine. Questions, comments, suggestions? Feel free to drop by in #isoprey on EFNet.
 
-**Do __not__ try to run multiple instances of the pipeline script on the same IP. The pipeline is hardcoded to a maximum concurrency of 6 threads; above this, Isohunt will __ban your IP__.** Just copypaste the pipeline commands below, and you will be fine.
+**Do __not__ try to run multiple instances of the pipeline script on the same IP. The pipeline is hardcoded to a maximum concurrency of 20 threads; above this, Isohunt will __ban your IP__.** Just copypaste the pipeline commands below, and you will be fine.
 
 Why we're archiving Isohunt
 -------------------------
@@ -40,7 +40,7 @@ If you want to run this on Linux, then skip ahead to the next section; otherwise
 4. `apt-get update`
 5. `apt-get install -y git-core libgnutls-dev lua5.1 liblua5.1-0 liblua5.1-0-dev screen python-pip bzip2`
 6. `git clone https://github.com/joepie91/isohunt-grab.git; cd isohunt-grab; ./get-wget-lua.sh`
-7. `run-pipeline pipeline.py --concurrent 6 --port 8002 YOURNICKHERE`
+7. `run-pipeline pipeline.py --concurrent 20 --port 8002 YOURNICKHERE`
 
 Running without a warrior
 -------------------------
@@ -52,7 +52,7 @@ To run this outside the warrior, clone this repository and run:
 
 then start downloading with:
 
-    run-pipeline pipeline.py --concurrent 6 YOURNICKHERE
+    run-pipeline pipeline.py --concurrent 20 YOURNICKHERE
 
 For more options, run:
 
@@ -74,7 +74,7 @@ Distribution-specific setup
     apt-get install -y git-core libgnutls-dev lua5.1 liblua5.1-0 liblua5.1-0-dev screen python-pip bzip2
     pip install seesaw
     su -c "cd /home/archiveteam; git clone https://github.com/joepie91/isohunt-grab.git; cd isohunt-grab; ./get-wget-lua.sh" archiveteam
-    screen su -c "cd /home/archiveteam/isohunt-grab/; run-pipeline pipeline.py --concurrent 6 --address '127.0.0.1' YOURNICKHERE" archiveteam
+    screen su -c "cd /home/archiveteam/isohunt-grab/; run-pipeline pipeline.py --concurrent 20 --address '127.0.0.1' YOURNICKHERE" archiveteam
     [... ctrl+A D to detach ...]
     
 ### For CentOS:
@@ -114,7 +114,7 @@ Ensure that you have the Arch equivalent of bzip2 installed as well.
 3. Run `pip2 install seesaw`.
 4. Modify the run-pipeline script in seesaw to point at `#!/usr/bin/python2` instead of `#!/usr/bin/python`.
 5. `adduser --system --group --shell /bin/bash archiveteam`
-6. `screen su -c "cd /home/archiveteam/isohunt-grab/; run-pipeline pipeline.py --concurrent 6 --address '127.0.0.1' YOURNICKHERE" archiveteam`
+6. `screen su -c "cd /home/archiveteam/isohunt-grab/; run-pipeline pipeline.py --concurrent 20 --address '127.0.0.1' YOURNICKHERE" archiveteam`
 
 ### For FreeBSD:
 
