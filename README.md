@@ -34,7 +34,7 @@ If you want to run this on Linux, then skip ahead to the next section; otherwise
 2. After starting the Warrior VM, make sure that your keyboard input is captured and press `ALT + F3`. You will get a terminal.
 3. Log in with the login details you're shown on the terminal.
 4. `git clone https://github.com/joepie91/isohunt-grab.git; cd isohunt-grab; ./get-wget-lua.sh`
-5. `run-pipeline pipeline.py --concurrent 2 --port 8002 YOURNICKHERE`
+5. `run-pipeline pipeline.py --concurrent 6 --port 8002 YOURNICKHERE`
 
 Running without a warrior
 -------------------------
@@ -46,7 +46,7 @@ To run this outside the warrior, clone this repository and run:
 
 then start downloading with:
 
-    run-pipeline pipeline.py --concurrent 2 YOURNICKHERE
+    run-pipeline pipeline.py --concurrent 6 YOURNICKHERE
 
 For more options, run:
 
@@ -61,7 +61,7 @@ Distribution-specific setup
     apt-get install -y git-core libgnutls-dev lua5.1 liblua5.1-0 liblua5.1-0-dev screen python-pip bzip2
     pip install seesaw
     su -c "cd /home/archiveteam; git clone https://github.com/joepie91/isohunt-grab.git; cd isohunt-grab; ./get-wget-lua.sh" archiveteam
-    screen su -c "cd /home/archiveteam/isohunt-grab/; run-pipeline pipeline.py --concurrent 2 --address '127.0.0.1' YOURNICKHERE" archiveteam
+    screen su -c "cd /home/archiveteam/isohunt-grab/; run-pipeline pipeline.py --concurrent 6 --address '127.0.0.1' YOURNICKHERE" archiveteam
     [... ctrl+A D to detach ...]
     
 ### For CentOS:
@@ -101,7 +101,7 @@ Ensure that you have the Arch equivalent of bzip2 installed as well.
 3. Run `pip2 install seesaw`.
 4. Modify the run-pipeline script in seesaw to point at `#!/usr/bin/python2` instead of `#!/usr/bin/python`.
 5. `adduser --system --group --shell /bin/bash archiveteam`
-6. `screen su -c "cd /home/archiveteam/isohunt-grab/; run-pipeline pipeline.py --concurrent 2 --address '127.0.0.1' YOURNICKHERE" archiveteam`
+6. `screen su -c "cd /home/archiveteam/isohunt-grab/; run-pipeline pipeline.py --concurrent 6 --address '127.0.0.1' YOURNICKHERE" archiveteam`
 
 ### For FreeBSD:
 
