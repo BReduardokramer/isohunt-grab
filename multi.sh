@@ -1,10 +1,15 @@
-nick=YOURNICKHERE
-oldip=x.x.x.x
+#!/bin/sh
+set -eu
+
+usage() { printf "USAGE: %s NICK\n" "$0" >&2; }
+if [ "$#" -ne 1 ]; then usage; exit 1; fi
+
+case "$1" in -*) usage; exit 0 ;; esac
+nick="$1"; shift
 
 for i in `cat ips`;  do
-    sed s/$oldip/$i/ pipeline-multi.py -i
-    nohup run-pipeline pipeline-multi.py $nick --concurrent 12 --disable-web-server > $i.log &
-	oldip=$i
+    file="pipeline-$i.py"
+    sed 's/^\(\s\+\)\(#\s*\)\(.*\)%BIND_ADDRESS%/\1\3'"$i"'/' pipeline.py >"$file"
+    printf "%s\n" "$file"
+    nohup run-pipeline "$file" --disable-web-server "$nick" >"$i.log" 2>&1 &
 done
-
-sed s/$oldip/x.x.x.x/ pipeline-multi.py -i

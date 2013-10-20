@@ -474,7 +474,8 @@ pipeline = Pipeline(
 			"--timeout", "60",
 			"--level=inf",
 			"--tries", "20",
-			"--waitretry", "5"
+			"--waitretry", "5",
+			# "--bind-address", "%BIND_ADDRESS%",
 			],
 			max_tries=5,
 			accept_on_exit_code=[ 0 ]
