@@ -3,7 +3,7 @@ oldip=x.x.x.x
 
 for i in `cat ips`;  do
     sed s/$oldip/$i/ pipeline-multi.py -i
-    nohup run-pipeline pipeline-multi.py $nick --concurrent 15 --disable-web-server > $i.log &
+    nohup run-pipeline pipeline-multi.py $nick --concurrent 12 --disable-web-server > $i.log &
 	oldip=$i
 done
 
