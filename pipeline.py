@@ -211,7 +211,7 @@ class WgetDownloadTorrentRange(Task):
 			else:
 				return False
 		else:
-			item["current_url"] = "http://isohunt.com/torrent_details/%d/" % item["current_id"]
+			item["current_url"] = "http://ca.isohunt.com/torrent_details/%d/" % item["current_id"]
 			#item["logwriter"] = DualWriter([item.log_output], "%s/details-%d.log" % (item["item_dir"], item["current_id"]))
 			item["logwriter"] = DualWriter([], "%s/details-%d.log" % (item["item_dir"], item["current_id"]))
 			return True
