@@ -23,6 +23,8 @@ Setup instructions
 
 Be sure to replace `YOURNICKHERE` with the nickname that you want to be shown as, on the tracker. You don't need to register it, just pick a nickname you like.
 
+In most of the below cases, there will be a web interface running at http://localhost:8001/. If you don't know or care what this is, you can just ignore it - otherwise, it gives you a fancy view of what's going on.
+
 **If anything goes wrong while running the commands below, please scroll down to the bottom of this page - there's troubleshooting information there.**
 
 Running with a warrior
