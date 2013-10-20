@@ -127,11 +127,11 @@ Broken? These are some of the possible solutions:
 
 If you get errors about `wget.pod` or something similar, the documentation failed to compile - wget-lua, however, compiled fine. Try this:
 
-    cd wget-lua.tmp
+    cd get-wget-lua.tmp
     mv src/wget ../wget-lua
     cd ..
     
-The `wget-lua.tmp` name may be inaccurate. If you have a folder with a similar but different name, use that instead and please let us know on IRC what folder name you had!
+The `get-wget-lua.tmp` name may be inaccurate. If you have a folder with a similar but different name, use that instead and please let us know on IRC what folder name you had!
     
 ### Other problems
 
