@@ -65,7 +65,7 @@ Running multiple instances on different IPs
 
 Follow the instructions for setting up dependencies on your distribution below, but instead of running run-pipeline directly, use multi.sh in the repository. 
 
-Put a list of IPs in a file named `ips`. Don't forget to change `YOURNICKHERE` in multi.sh to your nickname!
+Put a list of IPs in a file named `ips`. Don't forget to provide the nickname you want to use as the first argument!
 
 Distribution-specific setup
 -------------------------
