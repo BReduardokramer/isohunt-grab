@@ -124,7 +124,7 @@ if not WGET_LUA:
 #
 # Update this each time you make a non-cosmetic change.
 # It will be added to the WARC files and reported to the tracker.
-VERSION = "20131018.01"
+VERSION = "20131018.02"
 USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.66 Safari/537.36"
 TRACKER_ID = 'isoprey'
 TRACKER_HOST = 'tracker.archiveteam.org'
