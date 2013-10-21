@@ -202,11 +202,13 @@ class WgetDownloadTorrentRange(Task):
 		
 		item["torrent_404"] = False
 		
+		serv = random.choice(["se", "ca"])
+		
 		if item["current_is_torrent"]:			
 			if item["current_id"] < item["end_id"]:
 				item["current_id"] += 1
 				#item["current_url"] = "http://ca.isohunt.com/download/%d/%s.torrent" % (item["current_id"], "".join(random.choice(string.letters + string.digits + '-') for x in xrange(0,random.randint(6, 16))))
-				item["current_url"] = "http://ca.isohunt.com/torrent_details/%d/" % item["current_id"]
+				item["current_url"] = "http://%s.isohunt.com/torrent_details/%d/" % (serv, item["current_id"])
 				#item["logwriter"] = DualWriter([sys.stdout.write, item.log_output], "%s/torrent-%d.log" % (item["item_dir"], item["current_id"]))
 				#item["logwriter"] = DualWriter([item.log_output], "%s/torrent-%d.log" % (item["item_dir"], item["current_id"]))
 				item["logwriter"] = DualWriter([], "%s/torrent-%d.log" % (item["item_dir"], item["current_id"]))
@@ -214,7 +216,7 @@ class WgetDownloadTorrentRange(Task):
 			else:
 				return False
 		else:
-			item["current_url"] = "http://ca.isohunt.com/torrent_details/%d/" % item["current_id"]
+			item["current_url"] = "http://%s.isohunt.com/torrent_details/%d/" % (serv, item["current_id"])
 			#item["logwriter"] = DualWriter([item.log_output], "%s/details-%d.log" % (item["item_dir"], item["current_id"]))
 			item["logwriter"] = DualWriter([], "%s/details-%d.log" % (item["item_dir"], item["current_id"]))
 			return True
