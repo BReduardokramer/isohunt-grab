@@ -139,6 +139,12 @@ The `get-wget-lua.tmp` name may be inaccurate. If you have a folder with a simil
 
 Optionally, if you know what you're doing, you may want to use wgetpod.patch.
     
+### ImportError: No module named seesaw
+
+If you're sure that you followed the steps to install `seesaw`, permissions on your module directory may be set incorrectly. Try the following:
+
+    chmod o+rX -R /usr/local/lib/python2.7/dist-packages
+
 ### Other problems
 
 Have an issue not listed here? Join us on IRC and ask! We can be found at irc.efnet.org #isoprey.
