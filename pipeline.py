@@ -19,7 +19,7 @@ import shutil
 import subprocess
 import time
 from tornado.ioloop import IOLoop, PeriodicCallback
-import random, string, sys, functools, json, re
+import random, string, sys, functools, json, re, urllib2
 
 # check the seesaw version before importing any other components
 if StrictVersion(seesaw.__version__) < StrictVersion("0.0.15"):
@@ -125,7 +125,7 @@ if not WGET_LUA:
 # Update this each time you make a non-cosmetic change.
 # It will be added to the WARC files and reported to the tracker.
 VERSION = "20131018.01"
-USER_AGENT = "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:24.0) Gecko/20100101 Firefox/24.0"
+USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.66 Safari/537.36"
 TRACKER_ID = 'isoprey'
 TRACKER_HOST = 'tracker.archiveteam.org'
 
@@ -199,11 +199,14 @@ class WgetDownloadTorrentRange(Task):
 			item["logwriter"].close()
 		except KeyError, e:
 			pass
-			
+		
+		item["torrent_404"] = False
+		
 		if item["current_is_torrent"]:			
 			if item["current_id"] < item["end_id"]:
 				item["current_id"] += 1
-				item["current_url"] = "http://ca.isohunt.com/download/%d/%s.torrent" % (item["current_id"], "".join(random.choice(string.letters + string.digits + '-') for x in xrange(0,random.randint(6, 16))))
+				#item["current_url"] = "http://ca.isohunt.com/download/%d/%s.torrent" % (item["current_id"], "".join(random.choice(string.letters + string.digits + '-') for x in xrange(0,random.randint(6, 16))))
+				item["current_url"] = "http://ca.isohunt.com/torrent_details/%d/" % item["current_id"]
 				#item["logwriter"] = DualWriter([sys.stdout.write, item.log_output], "%s/torrent-%d.log" % (item["item_dir"], item["current_id"]))
 				#item["logwriter"] = DualWriter([item.log_output], "%s/torrent-%d.log" % (item["item_dir"], item["current_id"]))
 				item["logwriter"] = DualWriter([], "%s/torrent-%d.log" % (item["item_dir"], item["current_id"]))
@@ -221,12 +224,24 @@ class WgetDownloadTorrentRange(Task):
 			url = item["current_url"]
 			torrent_name, warc_name = item["file_bases"][item["current_id"]]
 			
+			item.log_output("Start downloading URL %s" % url)
+			
 			if item["current_is_torrent"]:
-				extra_args = ["-O", "%s/%s" % (item["item_dir"], torrent_name)]
+				extra_args = ["--output-document"]
+				# Fuck it, tired of wget
+				try:
+					data = urllib2.urlopen(url).read()
+					if item["current_is_torrent"] and "Torrent not available." in data:
+						item["torrent_404"] = True
+						retcode = 0#8
+					else:
+						retcode = 0
+				except urllib2.HTTPError, e:
+					retcode = 8
+				self.on_subprocess_end(item, retcode)
+				return
 			else:
 				extra_args = ["--page-requisites", "-r", "-np", "-P", item["item_dir"], "--warc-file", "%s/%s" % (item["item_dir"], warc_name.replace(".warc.gz", ""))]
-				
-			item.log_output("Start downloading URL %s" % url)
 
 			p = seesaw.externalprocess.AsyncPopen(
 				args=realize(self.args, item) + extra_args + [url],
@@ -249,15 +264,24 @@ class WgetDownloadTorrentRange(Task):
 		self.complete_item(item)
 		
 	def handle_process_result(self, exit_code, item):
-		if item["current_is_torrent"]:
-			item.log_output("Found torrent for ID %s, fetching metadata..." % item["current_id"])
+		if item["torrent_404"]:
+			item.log_output("404 for torrent file detected, skipping ID %s..." % item["current_id"])
+			item["torrent_404"] = False
+			if self.set_next_url(item):
+				self.process_one(item)
+			else:
+				self.handle_done(item)
+			return
 		else:
-			item.log_output("Metadata for ID %s fetched. Moving on to next ID..." % item["current_id"])
-		item["current_is_torrent"] = not item["current_is_torrent"]
-		if self.set_next_url(item):
-			self.process_one(item)
-		else:
-			self.handle_done(item)
+			if item["current_is_torrent"]:
+				item.log_output("Found torrent for ID %s, fetching metadata..." % item["current_id"])
+			else:
+				item.log_output("Metadata for ID %s fetched. Moving on to next ID..." % item["current_id"])
+			item["current_is_torrent"] = not item["current_is_torrent"]
+			if self.set_next_url(item):
+				self.process_one(item)
+			else:
+				self.handle_done(item)
 			
 	def stdin_data(self, item):
 		if self.stdin_data_function:
@@ -271,8 +295,9 @@ class WgetDownloadTorrentRange(Task):
 		except ValueError, e:
 			pass # Not sure why this happens, but it breaks shit
 		
-		if item["current_is_torrent"] and "ERROR 404: Not Found" in data:
+		if item["current_is_torrent"] and "Torrent not available." in data:
 			item["torrent_404"] = True
+			#item.log_output("404 DETECTED")
 		#item.log_output(data, full_line=False)
 
 	def on_subprocess_end(self, item, returncode):
@@ -284,17 +309,9 @@ class WgetDownloadTorrentRange(Task):
 	def handle_process_error(self, exit_code, item):
 		if item["current_is_torrent"] == True:
 			# Torrent doesn't exist, so there's no point in trying to download other pages
-			if item["torrent_404"]:
-				item.log_output("404 for torrent file detected, skipping ID %s..." % item["current_id"])
-				if self.set_next_url(item):
-					self.process_one(item)
-				else:
-					self.handle_done(item)
-				return
-			else:
-				item.log_output("Got throttled on ID %s, waiting 1200 seconds before retry..." % item["current_id"])
-				retry_delay = 1200
-				# fall through to retry
+			item.log_output("Got throttled on ID %s (or server died)" % item["current_id"])
+			retry_delay = self.retry_delay
+			# fall through to retry
 		else:
 			retry_delay = self.retry_delay
 		
