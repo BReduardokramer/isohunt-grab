@@ -1,7 +1,9 @@
 isohunt-grab
 =========================
 
-**IF YOU PREVIOUSLY RAN ISOHUNT-GRAB, PLEASE UPDATE NOW.** You may do this by running `git pull` in the `isohunt-grab` directory. Important changes have been made, and your submissions will be **rejected** if you do not update. Thanks for your help, everyone!
+**isoHunt is dead, long live isoHunt!** You may shut down your archiving scripts; [isoHunt is no more](http://torrentfreak.com/isohunt-shuts-down-early-to-block-backup-plan-131021/). The current estimate is that we managed to scrape around 750,000 torrents with metadata. Archives will be announced in #archiveteam on irc.efnet.org, and uploaded to archive.org. Thanks for your help, everybody!
+
+If you want to talk to other people involved, we're still in the #isoprey channel on EFNet.
 
 Seesaw script for the Archive Team Isohunt grabbing.
 You'll find this project on the Archive Team Tracker (http://tracker.archiveteam.org/isoprey/).
